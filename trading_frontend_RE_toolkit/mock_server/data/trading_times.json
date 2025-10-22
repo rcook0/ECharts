@@ -1,0 +1,22 @@
+{
+  "EURUSD": {
+    "open": "00:00",
+    "close": "23:59",
+    "trading": true
+  },
+  "GBPUSD": {
+    "open": "00:00",
+    "close": "23:59",
+    "trading": true
+  },
+  "XAUUSD": {
+    "open": "00:00",
+    "close": "23:59",
+    "trading": true
+  },
+  "BTCUSD": {
+    "open": "00:00",
+    "close": "23:59",
+    "trading": true
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "uid": "uid_demo_001",
+  "email": "demo@user.local",
+  "first_name": "Demo",
+  "last_name": "User",
+  "ftd": 1,
+  "balance": 10000.0,
+  "currency": "USD",
+  "settings": {
+    "autotrade": false,
+    "martingale": false,
+    "risk_pct": 1.0,
+    "timezone": "UTC"
+  }
+}

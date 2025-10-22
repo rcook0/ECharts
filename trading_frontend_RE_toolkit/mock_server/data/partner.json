@@ -1,0 +1,10 @@
+{
+  "partner_id": "partner_demo",
+  "partner_name": "Demo Partner",
+  "deposit_url": "https://example.invalid/deposit",
+  "support_url": "https://example.invalid/support",
+  "features": {
+    "allow_autotrade": true,
+    "allow_withdrawals": true
+  }
+}
