@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Forensic Export</title><link rel="stylesheet" href="assets/styles.css"/></head><body>
+<header><div>WL Trader (RE) — Forensic</div><div class="right"><a class="badge" href="index.html">Trader</a><input id="jwt" placeholder="Admin Bearer token" style="min-width:260px"><button id="setTok">Auth</button></div></header>
+<nav class="tabs"><a href="index.html">Trader</a><a href="profile.html">Profile</a><a href="health.html">Health</a><a class="active" href="forensic.html">Forensic</a></nav>
+<main><section class="panel">
+  <div class="flex"><label>Endpoint</label><input id="ep" value="/api"><button id="export">Export ZIP</button><span id="msg" class="small"></span></div>
+  <div class="small" style="margin-top:8px">Produces <b>forensic_export.zip</b> with <code>forensic.json</code> and <code>manifest.txt</code> (SHA256) and watermark.</div>
+</section></main>
+<script>
+(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};
+const hdr=()=>{const t=(localStorage.getItem("jwt")||"").trim();return t?{"Authorization":"Bearer "+t}:{}};document.getElementById("ep").value=localStorage.getItem("endpoint")||"/api";
+document.getElementById("export").onclick=async()=>{
+  const ep=document.getElementById("ep").value; localStorage.setItem("endpoint",ep);
+  const res=await fetch(ep+"/forensic/export",{headers:hdr()});
+  if(!res.ok){ document.getElementById("msg").textContent="Export failed"; return; }
+  const blob=await res.blob(); const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="forensic_export.zip"; a.click(); URL.revokeObjectURL(url);
+  document.getElementById("msg").textContent="Exported.";
+};
+</script></body></html>

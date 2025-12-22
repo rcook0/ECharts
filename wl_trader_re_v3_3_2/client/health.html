@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Health</title><link rel="stylesheet" href="assets/styles.css"/></head><body>
+<header><div>WL Trader (RE) — Health</div><div class="right"><a class="badge" href="index.html">Trader</a><input id="jwt" placeholder="Bearer token" style="min-width:260px"><button id="setTok">Auth</button></div></header>
+<nav class="tabs"><a href="index.html">Trader</a><a href="profile.html">Profile</a><a class="active" href="health.html">Health</a><a href="admin.html">Admin</a><a href="forensic.html">Forensic</a></nav>
+<main><section class="panel"><label>Endpoint</label><input id="ep" value="/api"><button id="go">Refresh</button>
+<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><span id="pill" class="pill">—</span><span id="trust" class="badge">trust?</span></div>
+<pre id="payload" style="margin-top:8px"></pre></section></main>
+<script>
+(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};
+const hdr=()=>{const t=(localStorage.getItem("jwt")||"").trim();return t?{"Authorization":"Bearer "+t}:{}};
+document.getElementById("ep").value=localStorage.getItem("endpoint")||"/api";
+async function load(){const ep=document.getElementById("ep").value; localStorage.setItem("endpoint",ep);
+  const js=await (await fetch(ep+"/health/adapters",{headers:hdr()})).json();
+  const ok=js.adapter && js.adapter.ok; const t=(js.adapter&&js.adapter.type||"").toUpperCase();
+  document.getElementById("pill").className=ok?"pill ok":"pill bad"; document.getElementById("pill").textContent=t+(ok?" OK":" DOWN");
+  document.getElementById("trust").className = js.trusted_mode ? "badge green":"badge red";
+  document.getElementById("trust").textContent = js.trusted_mode ? "TRUSTED" : "LEGACY";
+  document.getElementById("payload").textContent=JSON.stringify(js,null,2);
+}
+document.getElementById("go").onclick=load; load();
+</script></body></html>
