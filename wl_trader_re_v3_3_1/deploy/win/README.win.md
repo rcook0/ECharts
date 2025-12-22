@@ -1,0 +1,1 @@
+# Windows deploy: run `./deploy/win/deploy.ps1 -ProjectDir .` after extracting.
