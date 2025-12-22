@@ -1,0 +1,95 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Admin Console</title><link rel="stylesheet" href="assets/styles.css"/></head><body>
+<header><div>WL Trader (RE) — Admin Console</div><div class="right"><a class="badge" href="index.html">Trader</a><a class="badge" href="forensic.html">Forensic</a><input id="jwt" placeholder="Admin Bearer token" style="min-width:260px"><button id="setTok">Auth</button></div></header>
+<nav class="tabs"><a href="index.html">Trader</a><a href="profile.html">Profile</a><a href="health.html">Health</a><a class="active" href="admin.html">Admin</a><a href="forensic.html">Forensic</a></nav>
+<main>
+<section class="panel">
+  <div class="flex"><label>Endpoint</label><input id="ep" value="/api">
+  <label>Adapter</label><select id="adapter"><option value="mock">mock</option><option value="ccxt">ccxt</option><option value="mt5">mt5</option></select>
+  <input id="params" style="min-width:340px" placeholder='{"exchange":"binance","symbol_map":{"BTCUSD":"BTC/USDT"}}'>
+  <button id="setAdapter">Set Adapter</button>
+  <span id="trustBadge" class="badge">—</span>
+  <button id="trustToggle">Toggle Trust</button>
+  </div>
+</section>
+<section class="panel">
+  <h3>Risk Config</h3>
+  <div class="flex">
+    <label>Max DD %</label><input id="max_dd" type="number" step="0.01" value="30">
+    <label>Per-Trade %</label><input id="max_trade" type="number" step="0.01" value="10">
+    <label>Lev FX</label><input id="lev_fx" type="number" step="1" value="30">
+    <label>Lev Crypto</label><input id="lev_crypto" type="number" step="1" value="5">
+    <label>Lev Metals</label><input id="lev_metals" type="number" step="1" value="20">
+    <button id="saveRisk">Save</button>
+  </div>
+  <pre id="riskView" class="small"></pre>
+</section>
+<section class="panel">
+  <h3>Legacy White-Label Actions (local simulation)</h3>
+  <div class="grid2">
+    <div>
+      <b>Adjust Balance</b>
+      <div class="flex"><label>User ID</label><input id="ab_uid" type="number" value="2"><label>Amount</label><input id="ab_amt" type="number" step="0.01" value="-10000"><label>Reason</label><input id="ab_reason" value="negative_adjustment"><button id="ab_go">Apply</button></div>
+      <div class="small">In **LEGACY** mode this is flagged <span class="badge red">fabricated</span>. In TRUSTED it’s <span class="badge green">admin</span> + HMAC.</div>
+    </div>
+    <div>
+      <b>Phantom Fill</b>
+      <div class="flex"><label>User ID</label><input id="pf_uid" type="number" value="2"><label>Symbol</label><input id="pf_sym" value="EURUSD"><label>Side</label><select id="pf_side"><option>SELL</option><option>BUY</option></select></div>
+      <div class="flex"><label>Qty</label><input id="pf_qty" type="number" step="0.01" value="5"><label>Price</label><input id="pf_px" type="number" step="0.00001" value="1.05000"><label>Reason</label><input id="pf_reason" value="phantom_loss"></div>
+      <button id="pf_go">Insert</button>
+    </div>
+  </div>
+</section>
+<section class="panel"><h3>Users</h3><table class="table" id="users"></table></section>
+<section class="panel"><h3>Transactions</h3><table class="table" id="tx"></table></section>
+<section class="panel"><h3>Audit (latest)</h3><pre id="audit"></pre></section>
+</main>
+<script>
+(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};
+const hdr=()=>{const t=(localStorage.getItem("jwt")||"").trim();return t?{"Authorization":"Bearer "+t}:{}};const $=s=>document.querySelector(s);
+document.getElementById("ep").value=localStorage.getItem("endpoint")||"/api";
+document.getElementById("setAdapter").onclick=async()=>{
+  const ep=document.getElementById("ep").value; localStorage.setItem("endpoint",ep);
+  let cfg={type:document.getElementById("adapter").value, params:{}};
+  try{ cfg.params=JSON.parse(document.getElementById("params").value||"{}"); }catch{ alert("Bad JSON in params"); return; }
+  const res=await fetch(ep+"/config/adapter",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify(cfg)});
+  if(!res.ok){ alert("Adapter set failed"); }
+  load();
+};
+document.getElementById("saveRisk").onclick=async()=>{
+  const ep=document.getElementById("ep").value;
+  const payload={
+    max_dd_pct: parseFloat(document.getElementById("max_dd").value)/100.0,
+    max_trade_notional_pct: parseFloat(document.getElementById("max_trade").value)/100.0,
+    lev_fx: parseFloat(document.getElementById("lev_fx").value),
+    lev_crypto: parseFloat(document.getElementById("lev_crypto").value),
+    lev_metals: parseFloat(document.getElementById("lev_metals").value),
+  };
+  await fetch(ep+"/config/risk",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify(payload)});
+  risk();
+};
+document.getElementById("trustToggle").onclick=async()=>{
+  const ep=document.getElementById("ep").value;
+  const cur = (await (await fetch(ep+"/config/trust",{headers:hdr()})).json()).trusted;
+  const res=await fetch(ep+"/config/trust",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify({trusted:!cur})});
+  if(!res.ok){ alert("Toggle failed"); } load();
+};
+document.getElementById("ab_go").onclick=async()=>{
+  const ep=document.getElementById("ep").value;
+  const payload={userId:parseInt(document.getElementById("ab_uid").value||"0"),amount:parseFloat(document.getElementById("ab_amt").value||"0"),reason:document.getElementById("ab_reason").value||"manual"};
+  const res=await fetch(ep+"/admin/adjust_balance",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify(payload)});
+  if(!res.ok){ alert("Adjust failed"); } load();
+};
+document.getElementById("pf_go").onclick=async()=>{
+  const ep=document.getElementById("ep").value;
+  const payload={userId:parseInt(document.getElementById("pf_uid").value||"0"),symbol:document.getElementById("pf_sym").value||"EURUSD",side:document.getElementById("pf_side").value,qty:parseFloat(document.getElementById("pf_qty").value||"0"),price:parseFloat(document.getElementById("pf_px").value||"0"),reason:document.getElementById("pf_reason").value||"phantom"};
+  const res=await fetch(ep+"/admin/phantom_fill",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify(payload)});
+  if(!res.ok){ alert("Insert failed"); } load();
+};
+async function risk(){const ep=document.getElementById("ep").value;const js=await (await fetch(ep+"/config/risk",{headers:hdr()})).json();document.getElementById("riskView").textContent=JSON.stringify(js.risk,null,2);}
+async function users(){const ep=document.getElementById("ep").value;const js=await (await fetch(ep+"/admin/users",{headers:hdr()})).json();const hdrRow="<tr><th>ID</th><th>Email</th><th>Role</th><th>KYC</th></tr>";const body=(js.users||[]).map(u=>`<tr><td>${u.id}</td><td>${u.email}</td><td>${u.role}</td><td>${u.kyc}</td></tr>`).join("");document.getElementById("users").innerHTML=hdrRow+body;}
+async function tx(){const ep=document.getElementById("ep").value;const js=await (await fetch(ep+"/admin/transactions",{headers:hdr()})).json();const hdrRow="<tr><th>Time</th><th>User</th><th>ID</th><th>Type</th><th>Method</th><th>Cur</th><th>Amt</th><th>Status</th></tr>";const body=(js.transactions||[]).slice().reverse().map(r=>{const dt=new Date(r.ts).toISOString().replace("T"," ").slice(0,19);return `<tr><td>${dt}</td><td>${r.userId}</td><td>${r.id}</td><td>${r.type}</td><td>${r.method}</td><td>${r.currency}</td><td>${r.amount}</td><td>${r.status}</td></tr>`;}).join("");document.getElementById("tx").innerHTML=hdrRow+body;}
+async function audit(){const ep=document.getElementById("ep").value;const js=await (await fetch(ep+"/admin/audit",{headers:hdr()})).json();document.getElementById("audit").textContent=JSON.stringify(js.events,null,2);}
+async function trust(){const ep=document.getElementById("ep").value;const js=await (await fetch(ep+"/config/trust",{headers:hdr()})).json();const el=document.getElementById("trustBadge");el.className=js.trusted?"badge green":"badge red";el.textContent=js.trusted?"TRUSTED":"LEGACY";}
+async function load(){ await users(); await tx(); await audit(); await risk(); await trust(); }
+load();
+</script></body></html>

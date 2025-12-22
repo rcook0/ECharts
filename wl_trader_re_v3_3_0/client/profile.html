@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Profile</title><link rel="stylesheet" href="assets/styles.css"/></head><body>
+<header><div>WL Trader (RE) — Profile/KYC</div><div class="right"><a class="badge" href="index.html">Trader</a><a class="badge" href="forensic.html">Forensic</a><input id="jwt" placeholder="Bearer token" style="min-width:260px"><button id="setTok">Auth</button></div></header>
+<nav class="tabs"><a href="index.html">Trader</a><a class="active" href="profile.html">Profile</a><a href="health.html">Health</a><a href="admin.html">Admin</a></nav>
+<main><section class="panel"><h3>Profile / KYC</h3><div class="grid2"><div>
+<label>Endpoint</label><input id="ep" value="/api">
+<div style="margin-top:8px"><label>First name</label><input id="firstName"></div>
+<div style="margin-top:8px"><label>Last name</label><input id="lastName"></div>
+<div style="margin-top:8px"><label>Phone</label><input id="phone"></div>
+<div style="margin-top:12px"><button id="save">Save</button></div>
+</div><div>
+<h4>KYC</h4><div><span>Status</span>: <span id="kyc" class="pill">—</span></div>
+<div class="small" style="margin-top:6px">Demo only. Do NOT upload real personal data.</div>
+<div style="margin-top:8px"><label>Doc type</label><select id="doctype"><option value="passport">Passport</option><option value="id">National ID</option><option value="driver">Driver License</option><option value="poa">Proof of Address</option></select></div>
+<div style="margin-top:8px"><label>Document</label><input type="file" id="doc" accept=".jpg,.jpeg,.png,.pdf"></div>
+<div style="margin-top:8px"><label>Selfie (optional)</label><input type="file" id="selfie" accept=".jpg,.jpeg,.png"></div>
+<div style="margin-top:10px;display:flex;gap:8px"><button id="upload">Upload</button><button id="submit">Submit KYC</button></div>
+<div id="msg" class="small" style="margin-top:8px"></div>
+</div></div></section>
+<section class="panel"><h4>KYC Files</h4><table class="table" id="files"></table></section></main>
+<script>
+(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};
+const hdr=()=>{const t=(localStorage.getItem("jwt")||"").trim();return t?{"Authorization":"Bearer "+t}:{}};const $=s=>document.querySelector(s);
+document.getElementById("ep").value=localStorage.getItem("endpoint")||"/api";
+function pill(s){const el=document.getElementById("kyc");el.textContent=s.toUpperCase();el.className="pill "+(s==="verified"?"ok":(s==="pending"?"warn":"bad"));}
+async function load(){const ep=document.getElementById("ep").value; localStorage.setItem("endpoint",ep);
+  const p=await (await fetch(ep+"/account/profile",{headers:hdr()})).json();
+  document.getElementById("firstName").value=p.firstName||""; document.getElementById("lastName").value=p.lastName||""; document.getElementById("phone").value=p.phone||"";
+  const k=await (await fetch(ep+"/account/kyc",{headers:hdr()})).json(); pill(k.status||"unverified");
+  const f=await (await fetch(ep+"/account/kyc/files",{headers:hdr()})).json();
+  const hdrRow="<tr><th>Time</th><th>ID</th><th>Type</th><th>File</th><th>Bytes</th><th>SHA256</th></tr>";
+  const body=(f.files||[]).slice().reverse().map(x=>{const dt=new Date(x.ts).toISOString().replace("T"," ").slice(0,19);return `<tr><td>${dt}</td><td>${x.id}</td><td>${x.type}</td><td>${x.filename}</td><td>${x.bytes}</td><td class="small">${x.sha256}</td></tr>`}).join("");
+  document.getElementById("files").innerHTML=hdrRow+body;
+}
+document.getElementById("save").onclick=async()=>{const ep=document.getElementById("ep").value;await fetch(ep+"/account/profile",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify({firstName:document.getElementById("firstName").value,lastName:document.getElementById("lastName").value,phone:document.getElementById("phone").value})});load();};
+document.getElementById("upload").onclick=async()=>{const ep=document.getElementById("ep").value;const fd=new FormData();fd.set("docType",document.getElementById("doctype").value);if(document.getElementById("doc").files.length){fd.set("doc",document.getElementById("doc").files[0]);}else{document.getElementById("msg").textContent="Select a document file.";return;}if(document.getElementById("selfie").files.length){fd.set("selfie",document.getElementById("selfie").files[0]);}
+const res=await fetch(ep+"/account/kyc/upload",{method:"POST",body:fd,headers:hdr()});const js=await res.json();document.getElementById("msg").textContent=res.ok?"Uploaded.":(js.detail||"error");load();};
+document.getElementById("submit").onclick=async()=>{const ep=document.getElementById("ep").value;await fetch(ep+"/account/kyc/submit",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify({demoAutoApprove:false})});load();};
+load();
+</script></body></html>

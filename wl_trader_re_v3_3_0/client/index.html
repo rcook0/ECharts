@@ -1,0 +1,67 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WL Trader</title><link rel="stylesheet" href="assets/styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script></head><body>
+<header><div>WL Trader (RE) — v3.3.0</div>
+<div class="right">
+  <a class="badge" href="profile.html">Profile</a>
+  <a class="badge" href="health.html">Health</a>
+  <a class="badge" href="admin.html">Admin</a>
+  <a class="badge" href="forensic.html">Forensic</a>
+  <input id="jwt" placeholder="Bearer token" style="min-width:260px"><button id="setTok">Auth</button>
+</div></header>
+<main><section class="panel">
+<div class="flex">
+  <label>Endpoint</label><input id="ep" value="/api">
+  <label>Symbol</label><select id="sym"><option>EURUSD</option><option>BTCUSD</option><option>XAUUSD</option></select>
+  <label>TF</label><select id="tf"><option>M1</option><option>M5</option><option>M15</option><option>H1</option></select>
+  <label><input type="checkbox" id="ema" checked> EMA20/50</label>
+  <label><input type="checkbox" id="rsi"> RSI(14)</label>
+  <button id="connect">Connect</button><button id="stream">Stream</button>
+</div>
+<div id="chart" style="margin-top:8px"></div>
+<div id="rsiChart" style="margin-top:8px;display:none"></div>
+<hr style="border:0;border-top:1px solid var(--border);margin:12px 0">
+<div class="grid2">
+  <div class="flex">
+    <b>Paper Order</b>
+    <label>Side</label><select id="side"><option>BUY</option><option>SELL</option></select>
+    <label>Qty</label><input id="qty" type="number" min="0" step="1" value="1">
+    <button id="place">Place Market</button>
+    <span id="ordMsg" class="small"></span>
+  </div>
+  <div class="kv" id="acct"></div>
+</div>
+</section></main>
+<script>
+(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};
+const hdr=()=>{const t=(localStorage.getItem("jwt")||"").trim();return t?{"Authorization":"Bearer "+t}:{}};const $=s=>document.querySelector(s);
+document.getElementById("ep").value=localStorage.getItem("endpoint")||"/api";
+
+const mainChart=echarts.init(document.getElementById("chart"));
+const rsiChart=echarts.init(document.getElementById("rsiChart"));
+function ema(src,n){let k=2/(n+1),out=[],p=null;for(let x of src){p=p==null?x:p+k*(x-p);out.push(p);}return out;}
+function rsi(src,n=14){let g=0,l=0,out=[null];for(let i=1;i<src.length;i++){let ch=src[i]-src[i-1];g=(g*(n-1)+Math.max(ch,0))/n;l=(l*(n-1)+Math.max(-ch,0))/n;let rs=l===0?100:g/l;out.push(100-(100/(1+rs)));}return out;}
+async function acct(){const ep=$("#ep").value; const js=await (await fetch(ep+"/paper/account",{headers:hdr()})).json(); const a=js;
+  const kv=(k,v)=>`<div class="small">${k}</div><div>${v}</div>`;
+  document.getElementById("acct").innerHTML=kv("Cash",a.cash.toFixed(2)) + kv("Equity",a.equity.toFixed(2)) + kv("Unrealized",a.unrealized.toFixed(2)) + 
+    kv("Drawdown",((a.drawdownPct*100)||0).toFixed(2)+"%") + kv("Margin Used",a.marginUsed.toFixed(2)) + kv("Free Margin",a.marginFree.toFixed(2));
+}
+async function render(){
+  const ep=$("#ep").value; localStorage.setItem("endpoint",ep);
+  const sym=$("#sym").value, tf=$("#tf").value;
+  const js=await (await fetch(`${ep}/products/forex/chart?symbol=${sym}&tf=${tf}&limit=200`,{headers:hdr()})).json();
+  const c=js.candles||[]; const x=c.map(b=>new Date(b.t).toISOString().slice(11,16)); const ohlc=c.map(b=>[b.o,b.c,b.l,b.h]); const close=c.map(b=>b.c);
+  let series=[{type:"candlestick",data:ohlc}];
+  if($("#ema").checked){const e20=ema(close,20), e50=ema(close,50); series.push({type:"line",data:e20,smooth:true,showSymbol:false},{type:"line",data=e50,smooth:true,showSymbol:false});}
+  mainChart.setOption({xAxis:{type:"category",data:x},yAxis:{scale:true},series});
+  if($("#rsi").checked){document.getElementById("rsiChart").style.display="block"; const R=rsi(close,14); rsiChart.setOption({xAxis:{type:"category",data:x},yAxis:{min:0,max:100},series:[{type:"line",data:R,showSymbol:false}]});}
+  else {document.getElementById("rsiChart").style.display="none";}
+  acct();
+}
+document.getElementById("connect").onclick=render;
+document.getElementById("ema").onchange=render; document.getElementById("rsi").onchange=render;
+document.getElementById("stream").onclick=()=>{ const s=io("/",{path:"/socket.io/"}); s.on("connect",()=>s.emit("subscribe",{symbol:document.getElementById("sym").value})); s.on("tick",()=>acct()); };
+document.getElementById("place").onclick=async()=>{ const ep=$("#ep").value; const payload={side:$("#side").value,symbol:$("#sym").value,qty:parseFloat($("#qty").value||"0")}; const res=await fetch(`${ep}/paper/order`,{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify(payload)}); const js=await res.json(); document.getElementById("ordMsg").textContent=res.ok?`OK. Realized ${(+js.trade.realized).toFixed(2)}`:(js.detail||"error"); acct(); };
+render();
+</script></body></html>
