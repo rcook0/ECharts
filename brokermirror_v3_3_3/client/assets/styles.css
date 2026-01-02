@@ -1,0 +1,14 @@
+:root{ --bg:#0f1115; --fg:#e8e8ea; --muted:#8a8f98; --panel:#171a21; --border:#232634; --ok:#27d07f; --warn:#ffb04a; --bad:#ff6161 }
+*{ box-sizing:border-box } body{ margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif }
+header{ display:flex; gap:10px; align-items:center; padding:10px 12px; background:#0c0f14; border-bottom:1px solid var(--border); justify-content:space-between }
+nav.tabs{ display:flex; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border); background:#0c0f14 }
+nav.tabs a{ padding:8px 10px; border-radius:8px; border:1px solid var(--border); color:#e8e8ea; text-decoration:none }
+nav.tabs a.active{ background:#1a1f29 }
+.panel{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px }
+.grid{ display:grid; grid-template-columns: 380px 1fr; gap:12px; padding:12px }
+.small{ font-size:12px; color:var(--muted) }
+input,select,button{ background:#0f131a; color:#e8e8ea; border:1px solid var(--border); border-radius:8px; padding:6px 8px }
+button{ cursor:pointer }
+#chart{ height:420px } #rsiChart{ height:120px } #matrix{ height:260px }
+.badge{ padding:2px 6px; border-radius:6px; border:1px solid var(--border); font-size:12px }
+.badge.red{ background:#2a0f0f; color:#ff7b7b } .badge.green{ background:#0f2a1a; color:#79ffb0 }

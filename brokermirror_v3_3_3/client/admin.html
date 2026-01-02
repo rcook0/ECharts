@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Admin</title><link rel="stylesheet" href="assets/styles.css"/></head><body>
+<header><div>BrokerMirror — Admin</div><div class="right"><a class="badge" href="index.html">Trader</a><a class="badge" href="forensic.html">Forensic</a><input id="jwt" placeholder="Admin token" style="min-width:260px"><button id="setTok">Auth</button></div></header>
+<nav class="tabs"><a href="index.html">Trader</a><a href="profile.html">Profile</a><a href="health.html">Health</a><a class="active" href="admin.html">Admin</a><a href="forensic.html">Forensic</a></nav>
+<main><section class="panel"><div class="small">Use risk presets from the trader page or set raw values here via API.</div></section></main>
+<script>(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};</script></body></html>

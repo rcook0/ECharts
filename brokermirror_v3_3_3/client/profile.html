@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Profile</title><link rel="stylesheet" href="assets/styles.css"/></head><body>
+<header><div>BrokerMirror — Profile/KYC</div><div class="right"><a class="badge" href="index.html">Trader</a><a class="badge" href="forensic.html">Forensic</a><input id="jwt" placeholder="Bearer token" style="min-width:260px"><button id="setTok">Auth</button></div></header>
+<nav class="tabs"><a href="index.html">Trader</a><a class="active" href="profile.html">Profile</a><a href="health.html">Health</a><a href="admin.html">Admin</a><a href="forensic.html">Forensic</a></nav>
+<main><section class="panel"><h3>Profile / KYC</h3><div class="small">Demo only. Do NOT upload real documents.</div>
+<div style="margin-top:8px"><label>Endpoint</label><input id="ep" value="/api"></div>
+<div style="margin-top:8px"><label>First name</label><input id="firstName"></div>
+<div style="margin-top:8px"><label>Last name</label><input id="lastName"></div>
+<div style="margin-top:8px"><label>Phone</label><input id="phone"></div>
+<div style="margin-top:12px"><button id="save">Save</button></div></section></main>
+<script>
+(document.getElementById("setTok")||{}).onclick=()=>{localStorage.setItem("jwt",document.getElementById("jwt").value.trim());alert("Token set");};
+const hdr=()=>{const t=(localStorage.getItem("jwt")||"").trim();return t?{"Authorization":"Bearer "+t}:{}};
+document.getElementById("ep").value=localStorage.getItem("endpoint")||"/api";
+async function load(){const ep=document.getElementById("ep").value;const p=await (await fetch(ep+"/account/profile",{headers:hdr()})).json();document.getElementById("firstName").value=p.firstName||"";document.getElementById("lastName").value=p.lastName||"";document.getElementById("phone").value=p.phone||"";}
+document.getElementById("save").onclick=async()=>{const ep=document.getElementById("ep").value;await fetch(ep+"/account/profile",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},hdr()),body:JSON.stringify({firstName:document.getElementById("firstName").value,lastName:document.getElementById("lastName").value,phone:document.getElementById("phone").value})});load();};
+load();
+</script></body></html>
